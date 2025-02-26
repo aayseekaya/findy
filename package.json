@@ -1,0 +1,40 @@
+{
+  "name": "findy",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "seed": "node prisma/seed.js",
+    "postinstall": "prisma generate"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
+  "dependencies": {
+    "@auth/prisma-adapter": "^1.6.0",
+    "@prisma/client": "^5.22.0",
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^1.41.3",
+    "geolib": "^3.3.4",
+    "next": "^13.5.6",
+    "next-auth": "^4.24.11",
+    "pusher": "^5.2.0",
+    "pusher-js": "^8.4.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "swagger-ui-express": "^4.6.3",
+    "swagger-ui-react": "^5.19.0",
+    "yaml": "^2.7.0",
+    "yaml-loader": "^0.8.1"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20.17.19",
+    "@types/react": "^18.3.18",
+    "prisma": "^5.22.0",
+    "typescript": "^5.7.3"
+  }
+}

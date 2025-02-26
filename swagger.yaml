@@ -1,0 +1,432 @@
+openapi: 3.0.0
+info:
+  title: İşletme Bulma API
+  version: 1.0.0
+  description: Konum bazlı işletme bulma uygulaması API dokümantasyonu
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token
+  schemas:
+    Business:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        address:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        distance:
+          type: number
+        avgRating:
+          type: number
+        mainImage:
+          type: string
+          nullable: true
+        category:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+
+paths:
+  /api/businesses/search:
+    get:
+      summary: İşletmeleri Ara
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+        - name: lng
+          in: query
+          required: true
+          schema:
+            type: number
+        - name: maxDistance
+          in: query
+          schema:
+            type: number
+            default: 20
+        - name: categoryId
+          in: query
+          schema:
+            type: string
+        - name: query
+          in: query
+          schema:
+            type: string
+        - name: minRating
+          in: query
+          schema:
+            type: number
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [distance, rating, name]
+        - name: sortOrder
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Başarılı
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  businesses:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Business'
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+                      totalPages:
+                        type: integer
+
+  /api/business/dashboard:
+    get:
+      summary: İşletme Yönetim Paneli
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Başarılı
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  _count:
+                    type: object
+                    properties:
+                      reviews:
+                        type: integer
+                      messages:
+                        type: integer
+                  reviews:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        rating:
+                          type: integer
+                        createdAt:
+                          type: string
+                          format: date-time
+                  messages:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        content:
+                          type: string
+                        createdAt:
+                          type: string
+                          format: date-time
+                        user:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            name:
+                              type: string
+                  avgRating:
+                    type: number
+
+  /api/business/stats:
+    get:
+      summary: İşletme İstatistikleri
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [week, month, year]
+            default: week
+      responses:
+        '200':
+          description: Başarılı
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalReviews:
+                    type: integer
+                  avgRating:
+                    type: number
+                  totalMessages:
+                    type: integer
+                  unreadMessages:
+                    type: integer
+                  ratingDistribution:
+                    type: object
+                    properties:
+                      '1':
+                        type: integer
+                      '2':
+                        type: integer
+                      '3':
+                        type: integer
+                      '4':
+                        type: integer
+                      '5':
+                        type: integer
+
+  /api/business/settings:
+    get:
+      summary: İşletme Ayarlarını Getir
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Başarılı
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  description:
+                    type: string
+                    nullable: true
+                  address:
+                    type: string
+                  latitude:
+                    type: number
+                  longitude:
+                    type: number
+                  maxDistance:
+                    type: number
+                  categoryId:
+                    type: string
+    patch:
+      summary: İşletme Ayarlarını Güncelle
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                address:
+                  type: string
+                latitude:
+                  type: number
+                longitude:
+                  type: number
+                maxDistance:
+                  type: number
+                  minimum: 1
+                  maximum: 100
+                categoryId:
+                  type: string
+      responses:
+        '200':
+          description: Başarılı
+        '400':
+          description: Geçersiz İstek
+        '401':
+          description: Yetkisiz Erişim
+
+  /api/businesses/{id}/images:
+    post:
+      summary: İşletme Fotoğrafı Yükle
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+                isMain:
+                  type: boolean
+      responses:
+        '200':
+          description: Başarılı
+        '400':
+          description: Geçersiz İstek
+        '401':
+          description: Yetkisiz Erişim
+    get:
+      summary: İşletme Fotoğraflarını Getir
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Başarılı
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    url:
+                      type: string
+                    isMain:
+                      type: boolean
+
+  /api/categories:
+    get:
+      summary: Kategorileri Listele
+      parameters:
+        - name: withCount
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Başarılı
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    name:
+                      type: string
+                    _count:
+                      type: object
+                      properties:
+                        businesses:
+                          type: integer
+    post:
+      summary: Yeni Kategori Ekle
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+      responses:
+        '200':
+          description: Başarılı
+        '401':
+          description: Yetkisiz Erişim
+
+  /api/businesses:
+    get:
+      summary: İşletmeleri Listele
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+        - name: lng
+          in: query
+          required: true
+          schema:
+            type: number
+        - name: categoryId
+          in: query
+          schema:
+            type: string
+        - name: maxDistance
+          in: query
+          schema:
+            type: number
+            default: 20
+      responses:
+        '200':
+          description: Başarılı
+        '500':
+          description: Sunucu Hatası
+
+  /api/businesses/{id}/reviews:
+    post:
+      summary: Yorum Ekle
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rating:
+                  type: number
+                comment:
+                  type: string
+      responses:
+        '201':
+          description: Yorum Eklendi
+        '400':
+          description: Geçersiz İstek 

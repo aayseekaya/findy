@@ -1,0 +1,494 @@
+openapi: 3.0.0
+info:
+  title: İşletme Bulma API
+  version: 1.0.0
+  description: Konum bazlı işletme bulma uygulaması API dokümantasyonu
+
+servers:
+  - url: http://localhost:3000
+    description: Geliştirme Sunucusu
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+          nullable: true
+        role:
+          type: string
+          enum: [USER, BUSINESS, ADMIN]
+    
+    Business:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        address:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        distance:
+          type: number
+        avgRating:
+          type: number
+        mainImage:
+          type: string
+          nullable: true
+        category:
+          $ref: '#/components/schemas/Category'
+    
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+
+    Review:
+      type: object
+      properties:
+        id:
+          type: string
+        rating:
+          type: integer
+          minimum: 0
+          maximum: 5
+        comment:
+          type: string
+          nullable: true
+        userId:
+          type: string
+        businessId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+        content:
+          type: string
+        userId:
+          type: string
+        businessId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        isRead:
+          type: boolean
+
+paths:
+  /api/auth/signin:
+    post:
+      summary: Giriş Yap
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Başarılı giriş
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /api/auth/signout:
+    post:
+      summary: Çıkış Yap
+      responses:
+        '200':
+          description: Başarılı çıkış
+
+  /api/auth/register:
+    post:
+      summary: Yeni Kullanıcı Kaydı
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: Kullanıcı email adresi
+                password:
+                  type: string
+                  format: password
+                  minLength: 6
+                  description: Şifre (minimum 6 karakter)
+                name:
+                  type: string
+                  description: Kullanıcı adı
+                role:
+                  type: string
+                  enum: [USER, BUSINESS]
+                  description: Kullanıcı rolü
+                businessInfo:
+                  type: object
+                  description: İşletme rolü seçildiğinde gerekli
+                  required:
+                    - name
+                    - address
+                    - latitude
+                    - longitude
+                    - categoryId
+                  properties:
+                    name:
+                      type: string
+                      description: İşletme adı
+                    description:
+                      type: string
+                      description: İşletme açıklaması
+                    address:
+                      type: string
+                      description: İşletme adresi
+                    latitude:
+                      type: number
+                      description: Enlem
+                    longitude:
+                      type: number
+                      description: Boylam
+                    categoryId:
+                      type: string
+                      description: Kategori ID
+      responses:
+        '201':
+          description: Kullanıcı başarıyla oluşturuldu
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+                  business:
+                    $ref: '#/components/schemas/Business'
+                    description: İşletme rolü seçildiğinde döner
+        '400':
+          description: Geçersiz istek
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Email adresi zaten kullanımda"
+        '422':
+          description: Doğrulama hatası
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        field:
+                          type: string
+                        message:
+                          type: string
+
+  /api/businesses/search:
+    get:
+      summary: İşletmeleri Ara
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+        - name: lng
+          in: query
+          required: true
+          schema:
+            type: number
+        - name: maxDistance
+          in: query
+          schema:
+            type: number
+            default: 20
+        - name: categoryId
+          in: query
+          schema:
+            type: string
+        - name: query
+          in: query
+          schema:
+            type: string
+        - name: minRating
+          in: query
+          schema:
+            type: number
+            minimum: 0
+            maximum: 5
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Başarılı
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  businesses:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Business'
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+                      totalPages:
+                        type: integer
+
+  /api/businesses/{businessId}/images:
+    post:
+      summary: İşletme Fotoğrafı Yükle
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+                isMain:
+                  type: boolean
+      responses:
+        '200':
+          description: Fotoğraf başarıyla yüklendi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+
+  /api/businesses/{businessId}/reviews:
+    get:
+      summary: İşletme Değerlendirmelerini Getir
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Başarılı
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Review'
+    
+    post:
+      summary: Değerlendirme Ekle
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rating:
+                  type: integer
+                  minimum: 0
+                  maximum: 5
+                comment:
+                  type: string
+      responses:
+        '201':
+          description: Değerlendirme eklendi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+
+  /api/businesses/{businessId}/messages:
+    get:
+      summary: İşletme Mesajlarını Getir
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Başarılı
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Message'
+    
+    post:
+      summary: Mesaj Gönder
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+      responses:
+        '201':
+          description: Mesaj gönderildi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+
+  /api/categories:
+    get:
+      summary: Tüm Kategorileri Getir
+      responses:
+        '200':
+          description: Başarılı
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+
+  /api/businesses/{businessId}:
+    get:
+      summary: İşletme Detaylarını Getir
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: İşletme ID'si
+      responses:
+        '200':
+          description: Başarılı
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  business:
+                    $ref: '#/components/schemas/Business'
+                  reviews:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Review'
+                  stats:
+                    type: object
+                    properties:
+                      avgRating:
+                        type: number
+                        description: Ortalama puan
+                      totalReviews:
+                        type: integer
+                        description: Toplam değerlendirme sayısı
+                      ratingDistribution:
+                        type: object
+                        properties:
+                          1:
+                            type: integer
+                          2:
+                            type: integer
+                          3:
+                            type: integer
+                          4:
+                            type: integer
+                          5:
+                            type: integer
+        '404':
+          description: İşletme bulunamadı
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "İşletme bulunamadı" 

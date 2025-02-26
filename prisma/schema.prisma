@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  BUSINESS
+  ADMIN
+}
+
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  password  String
+  name      String?
+  role      Role      @default(USER)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // İlişkiler
+  business    Business?
+  reviews     Review[]
+  messages    Message[]    @relation("UserMessages")
+}
+
+model Business {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  address     String
+  latitude    Float
+  longitude   Float
+  categoryId  String
+  userId      String    @unique
+  maxDistance Float     @default(20)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // İlişkiler
+  user        User      @relation(fields: [userId], references: [id])
+  category    Category  @relation(fields: [categoryId], references: [id])
+  reviews     Review[]
+  messages    Message[]
+  images      BusinessImage[]
+}
+
+model Category {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  businesses Business[]
+}
+
+model Review {
+  id          String    @id @default(cuid())
+  rating      Int       @default(0)
+  comment     String?
+  userId      String
+  businessId  String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // İlişkiler
+  user      User      @relation(fields: [userId], references: [id])
+  business  Business  @relation(fields: [businessId], references: [id])
+}
+
+model Message {
+  id          String    @id @default(cuid())
+  content     String
+  userId      String
+  businessId  String
+  createdAt   DateTime  @default(now())
+  isRead      Boolean   @default(false)
+  
+  // İlişkiler
+  user      User      @relation("UserMessages", fields: [userId], references: [id])
+  business  Business  @relation(fields: [businessId], references: [id])
+}
+
+model BusinessImage {
+  id          String    @id @default(cuid())
+  url         String
+  businessId  String
+  isMain      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // İlişkiler
+  business    Business  @relation(fields: [businessId], references: [id])
+} 
