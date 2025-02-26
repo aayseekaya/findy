@@ -17,7 +17,7 @@ Bu proje, kullanıcıların konumlarına yakın işletmeleri bulabilecekleri, de
 ### 1. Depoyu Klonlayın:
 ```bash
 git clone https://github.com/aayseekaya/findy.git
-cd proje-adi
+cd findy
 ```
 
 ### 2. Bağımlılıkları Yükleyin:
